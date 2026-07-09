@@ -124,14 +124,22 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
     setOcrState((prev) => ({ ...prev, status: 'scanning', message: 'Analyzing frame...' }));
 
     try {
-      // Calculate video scaling factors
+      // Calculate video scaling factors for object-cover
       const clientWidth = video.clientWidth;
       const clientHeight = video.clientHeight;
       const videoWidth = video.videoWidth;
       const videoHeight = video.videoHeight;
 
-      const scaleX = videoWidth / clientWidth;
-      const scaleY = videoHeight / clientHeight;
+      // object-cover scaling ratio (uniform scale to fill container)
+      const scale = Math.max(clientWidth / videoWidth, clientHeight / videoHeight);
+
+      // Scaled dimensions of the video feed
+      const scaledWidth = videoWidth * scale;
+      const scaledHeight = videoHeight * scale;
+
+      // Offsets (how much of the video is hidden outside the client bounds)
+      const xOffset = (scaledWidth - clientWidth) / 2;
+      const yOffset = (scaledHeight - clientHeight) / 2;
 
       // Define CSS box dimensions matching the scan guide style
       const guideWidth = clientWidth * 0.85;
@@ -139,12 +147,17 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
       const guideLeft = (clientWidth - guideWidth) / 2;
       const guideTop = (clientHeight - guideHeight) / 2;
 
-      // Map CSS guide box coordinates to the actual video source dimensions
+      // Map CSS container coordinates (guide) to actual video source resolution
+      const sourceX = (guideLeft + xOffset) / scale;
+      const sourceY = (guideTop + yOffset) / scale;
+      const sourceWidth = guideWidth / scale;
+      const sourceHeight = guideHeight / scale;
+
       const guideRect = {
-        x: Math.max(0, guideLeft * scaleX),
-        y: Math.max(0, guideTop * scaleY),
-        width: Math.min(videoWidth, guideWidth * scaleX),
-        height: Math.min(videoHeight, guideHeight * scaleY),
+        x: Math.max(0, sourceX),
+        y: Math.max(0, sourceY),
+        width: Math.min(videoWidth, sourceWidth),
+        height: Math.min(videoHeight, sourceHeight),
       };
 
       // 1. Crop only the scan guide region from the video feed
