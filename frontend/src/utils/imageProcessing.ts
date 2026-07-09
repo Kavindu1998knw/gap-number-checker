@@ -15,8 +15,9 @@ export function loadOpenCV(): Promise<void> {
   }
 
   const sources = [
-    'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.6.0/dist/opencv.js',
-    'https://docs.opencv.org/4.10.0/opencv.js'
+    'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.12.0-release.1/dist/opencv.min.js',
+    'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.6.0/dist/opencv.min.js',
+    'https://cdn.jsdelivr.net/npm/opencv-wasm@4.3.0-10/opencv.min.js'
   ];
 
   openCvLoadingPromise = new Promise<void>((resolve, reject) => {
