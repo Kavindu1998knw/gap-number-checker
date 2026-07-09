@@ -113,23 +113,23 @@ export function preprocessImage(
 
     // 2. Increase Contrast
     // Adjust brightness/contrast: dest = alpha * src + beta
-    // alpha = 1.4 (scale factor for contrast), beta = -20 (brightness shift)
-    gray.convertTo(contrast, -1, 1.4, -20);
+    // alpha = 1.8 (sharper contrast), beta = -40 (suppress light shadows/background)
+    gray.convertTo(contrast, -1, 1.8, -40);
 
     // 3. Noise removal using Gaussian Blur
     const ksize = new cv.Size(3, 3);
     cv.GaussianBlur(contrast, blurred, ksize, 0, 0, cv.BORDER_DEFAULT);
 
     // 4. Adaptive Thresholding (Creates clean black and white image)
-    // block size = 11, constant C = 2
+    // block size = 15, constant C = 7 (better for paper document text extraction)
     cv.adaptiveThreshold(
       blurred,
       thresholded,
       255,
       cv.ADAPTIVE_THRESH_GAUSSIAN_C,
       cv.THRESH_BINARY,
-      11,
-      2
+      15,
+      7
     );
 
     // 5. Draw the final result back to the target canvas

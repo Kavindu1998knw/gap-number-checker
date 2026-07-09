@@ -135,7 +135,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
 
       // Define CSS box dimensions matching the scan guide style
       const guideWidth = clientWidth * 0.85;
-      const guideHeight = 85;
+      const guideHeight = 50;
       const guideLeft = (clientWidth - guideWidth) / 2;
       const guideTop = (clientHeight - guideHeight) / 2;
 
@@ -154,7 +154,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
       preprocessImage(sourceCanvas, targetCanvas);
 
       // 3. Recognize numbers using Tesseract.js from preprocessed canvas
-      const ocrResult = await recognizeNumbers(targetCanvas, 65);
+      const ocrResult = await recognizeNumbers(targetCanvas, 40);
 
       if (ocrResult) {
         setOcrState((prev) => ({
@@ -250,7 +250,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
           {/* Rectangular Scanning Guide Box */}
           {cameraStatus === 'active' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[85%] h-[85px] border-[3px] border-dashed border-white rounded-2xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+              <div className="w-[85%] h-[50px] border-[3px] border-dashed border-white rounded-2xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
                 {/* Laser animation inside guide box */}
                 <div className="scanner-laser" />
                 
