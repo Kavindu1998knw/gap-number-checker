@@ -9,14 +9,15 @@ declare global {
 
 let openCvLoadingPromise: Promise<void> | null = null;
 
-/**
- * Dynamically loads OpenCV.js from a CDN.
- * Uses window.Module to wait for runtime initialization.
- */
 export function loadOpenCV(): Promise<void> {
   if (openCvLoadingPromise) {
     return openCvLoadingPromise;
   }
+
+  const sources = [
+    'https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.3.0/opencv.js',
+    'https://docs.opencv.org/4.10.0/opencv.js'
+  ];
 
   openCvLoadingPromise = new Promise<void>((resolve, reject) => {
     // If cv is already defined and loaded
@@ -33,18 +34,46 @@ export function loadOpenCV(): Promise<void> {
       }
     };
 
-    const script = document.createElement('script');
-    script.src = 'https://docs.opencv.org/4.10.0/opencv.js';
-    script.async = true;
-    script.type = 'text/javascript';
+    let currentIndex = 0;
 
-    script.onerror = (err) => {
-      openCvLoadingPromise = null;
-      console.error('Failed to load OpenCV.js', err);
-      reject(new Error('Failed to load OpenCV library.'));
+    const loadNext = () => {
+      if (currentIndex >= sources.length) {
+        openCvLoadingPromise = null;
+        reject(new Error('Failed to load OpenCV library from all available CDN sources.'));
+        return;
+      }
+
+      console.log(`Attempting to load OpenCV.js from: ${sources[currentIndex]}`);
+      const script = document.createElement('script');
+      script.src = sources[currentIndex];
+      script.async = true;
+      script.type = 'text/javascript';
+
+      script.onload = () => {
+        // Double-check if cv is ready immediately or after a small delay
+        setTimeout(() => {
+          if (window.cv && window.cv.Mat) {
+            console.log('OpenCV.js loaded and validated');
+            resolve();
+          }
+        }, 100);
+      };
+
+      script.onerror = (err) => {
+        console.warn(`Failed to load OpenCV.js from ${sources[currentIndex]}. Trying next source...`, err);
+        try {
+          document.body.removeChild(script);
+        } catch (e) {
+          // Ignore if already removed
+        }
+        currentIndex++;
+        loadNext();
+      };
+
+      document.body.appendChild(script);
     };
 
-    document.body.appendChild(script);
+    loadNext();
   });
 
   return openCvLoadingPromise;
