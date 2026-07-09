@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { CameraScanner } from './components/CameraScanner';
+import { ManualInput } from './components/ManualInput';
 import { DataPanel } from './components/DataPanel';
 import { ResultOverlay } from './components/ResultOverlay';
 import { calculateGaps } from './utils/calculations';
 import type { OCRState, ScanResult } from './types';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Camera, Keyboard } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -17,11 +18,29 @@ export default function App() {
     lastScannedTime: 0,
   });
 
+  const [activeMode, setActiveMode] = useState<'camera' | 'manual'>('camera');
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<ScanResult[]>([]);
   const [isOverlayActive, setIsOverlayActive] = useState<boolean>(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
   const [networkError, setNetworkError] = useState<string | null>(null);
+
+  // Sync header status text when active mode switches
+  useEffect(() => {
+    if (activeMode === 'manual') {
+      setOcrState((prev) => ({
+        ...prev,
+        status: 'idle',
+        message: 'Manual entry mode active',
+      }));
+    } else {
+      setOcrState((prev) => ({
+        ...prev,
+        status: window.cv && window.cv.Mat ? 'opencv_ready' : 'idle',
+        message: window.cv && window.cv.Mat ? 'Ready to scan' : 'Initializing...',
+      }));
+    }
+  }, [activeMode]);
 
   // Fetch scan history from Node.js backend
   const fetchHistory = useCallback(async () => {
@@ -83,10 +102,10 @@ export default function App() {
     }
   };
 
-  // Callback from CameraScanner when 4 valid numbers are identified
-  const handleScanSuccess = async (result: ScanResult) => {
+  // Unified sequence check executor
+  const runCalculation = async (numbers: number[]) => {
     // 1. Calculate gaps and values using the core formula
-    const processedResult = calculateGaps(result.numbers);
+    const processedResult = calculateGaps(numbers);
     
     // 2. Update state to trigger rendering calculations and visual overlay
     setLastResult(processedResult);
@@ -95,10 +114,20 @@ export default function App() {
     // 3. Write results to backend database/log
     await saveScanToBackend(processedResult);
 
-    // 4. Leave overlay open for exactly 2 seconds before resuming scanning
+    // 4. Leave overlay open for exactly 2 seconds
     setTimeout(() => {
       setIsOverlayActive(false);
     }, 2000);
+  };
+
+  // Callback from CameraScanner when 4 valid numbers are identified
+  const handleScanSuccess = async (result: ScanResult) => {
+    await runCalculation(result.numbers);
+  };
+
+  // Callback from ManualInput form submit
+  const handleManualCalculate = async (numbers: number[]) => {
+    await runCalculation(numbers);
   };
 
   // Initial load
@@ -121,12 +150,44 @@ export default function App() {
           </div>
         )}
 
-        <CameraScanner
-          onScanSuccess={handleScanSuccess}
-          ocrState={ocrState}
-          setOcrState={setOcrState}
-          isOverlayActive={isOverlayActive}
-        />
+        {/* Mode Toggle Controls */}
+        <div className="w-full max-w-4xl mx-auto px-4 mb-6 flex justify-center">
+          <div className="flex bg-gray-200/60 p-1 rounded-2xl w-full sm:w-auto shadow-sm">
+            <button
+              onClick={() => setActiveMode('camera')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
+                activeMode === 'camera'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-950'
+              }`}
+            >
+              <Camera className="w-4 h-4" />
+              <span>Camera Scanner</span>
+            </button>
+            <button
+              onClick={() => setActiveMode('manual')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
+                activeMode === 'manual'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-950'
+              }`}
+            >
+              <Keyboard className="w-4 h-4" />
+              <span>Manual Entry</span>
+            </button>
+          </div>
+        </div>
+
+        {activeMode === 'camera' ? (
+          <CameraScanner
+            onScanSuccess={handleScanSuccess}
+            ocrState={ocrState}
+            setOcrState={setOcrState}
+            isOverlayActive={isOverlayActive}
+          />
+        ) : (
+          <ManualInput onCalculate={handleManualCalculate} />
+        )}
 
         <DataPanel
           lastResult={lastResult}
