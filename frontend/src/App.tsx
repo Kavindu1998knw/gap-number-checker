@@ -18,7 +18,8 @@ export default function App() {
     lastScannedTime: 0,
   });
 
-  const [activeMode, setActiveMode] = useState<'camera' | 'manual'>('camera');
+  const [activeMode, setActiveMode] = useState<'camera' | 'manual'>('manual');
+  const [resetCounter, setResetCounter] = useState<number>(0);
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<ScanResult[]>([]);
   const [isOverlayActive, setIsOverlayActive] = useState<boolean>(false);
@@ -117,6 +118,7 @@ export default function App() {
     // 4. Leave overlay open for exactly 2 seconds
     setTimeout(() => {
       setIsOverlayActive(false);
+      setResetCounter((prev) => prev + 1);
     }, 2000);
   };
 
@@ -186,7 +188,7 @@ export default function App() {
             isOverlayActive={isOverlayActive}
           />
         ) : (
-          <ManualInput onCalculate={handleManualCalculate} />
+          <ManualInput key={resetCounter} onCalculate={handleManualCalculate} />
         )}
 
         <DataPanel
